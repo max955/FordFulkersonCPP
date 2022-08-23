@@ -1,40 +1,40 @@
 #pragma once
-#include <algorithm>
-#include <iostream>
+#include "math.h"
+#include "stdlib.h"
+#include "stdio.h"
+#include <queue>
 #include <list>
+#include <stdexcept>
 #include <vector>
 
 using namespace std;
 
-namespace FordFulkerson
+class Graph
 {
+private:
+	vector<list<pair<int, int>>> _vertices;
 
-	class Graph
-	{
-	private:
-		vector<list<pair<int, int>>> _vertices;
+	void destroy();
+	void init(int size);
 
-		void destroy();
-		void init(int size);
+public:
+	Graph(int size = 0);
+	Graph(const Graph &otherGraph);
 
-	public:
-		Graph(int size = 0);
-		Graph(const Graph &other) = default;
+	~Graph();
 
-		~Graph();
+	Graph &operator=(const Graph &otherGraph);
+	Graph &Transpose(Graph dest);
 
-		Graph &operator=(const Graph &other) = default;
+	int GetLength() const { _vertices.size(); }
+	int AddToEdgeCapacity(int u, int v, int c);
 
-		int GetLength() const { return _vertices.size(); }
-		int AddToEdgeCapacity(int u, int v, int c);
+	bool IsAdjacent(int u, int v);
+	bool checkBounds(int num) const;
 
-		bool IsAdjacent(int u, int v);
-		bool checkBounds(int num) const;
+	list<pair<int, int>> &GetAdjList(int u);
 
-		list<pair<int, int>> &GetAdjList(int u);
-
-		void AddEdge(int u, int v, int c);
-		void RemoveEdge(int u, int v);
-		void MakeEmptyGraph();
-	};
-}
+	void AddEdge(int u, int v, int c);
+	void RemoveEdge(int u, int v);
+	void MakeEmptyGraph();
+};
