@@ -37,23 +37,6 @@ Graph &Graph::operator=(const Graph &otherGraph)
     return *this;
 }
 
-Graph &Graph::Transpose(Graph dest)
-{
-    dest.destroy();
-    if (this->GetLength() > 0)
-    {
-        dest.init(this->GetLength());
-        for (int index = 0; index < this->GetLength(); index++)
-        {
-            for (pair<int, int> edgePair : this->_vertices[index])
-            {
-                dest._vertices[edgePair.first].push_back({index, edgePair.second});
-            }
-        }
-    }
-    return dest;
-}
-
 void Graph::destroy()
 {
     for (vector<list<pair<int, int>>>::iterator vertex = _vertices.begin(); vertex != _vertices.end(); ++vertex)

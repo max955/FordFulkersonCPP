@@ -24,7 +24,6 @@ public:
 	~Graph();
 
 	Graph &operator=(const Graph &otherGraph);
-	Graph &Transpose(Graph dest);
 
 	int GetLength() const { _vertices.size(); }
 	int AddToEdgeCapacity(int u, int v, int c);
