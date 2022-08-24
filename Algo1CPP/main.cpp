@@ -21,8 +21,8 @@ int main(int argc, char const *argv[])
         PrintMinCut(extraGraph, s, t);
 
         extraGraph = myGraph;
-        printf("Greedy Method:\nMax flow: %d\n", FordFulkerson(myGraph, s - 1, t - 1, &Dijkstra));
-        PrintMinCut(myGraph,  extraGraph, s);
+        printf("\nGreedy Method:\nMax flow: %d\n", FordFulkerson(extraGraph, s, t, &Dijkstra));
+        PrintMinCut(extraGraph, s, t);
 
         return 0;
     }
@@ -104,7 +104,7 @@ bool BFS(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &paren
         q.pop();
         for (pair<int, int> e : graph.GetAdjList(u))
         {
-            if (capacities[e.first] < 0 && e.second > 0)
+            if (parents[e.first] == -1 && e.second > 0)
             {
                 q.push(e.first);
                 parents[e.first] = u;
@@ -118,35 +118,32 @@ bool BFS(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &paren
 
 bool Dijkstra(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &parents)
 {
-    priority_queue<pair<int, int>> q;
+    priority_queue<pair<int, int>> prior;
     capacities = vector<int>(graph.GetLength(), -1);
     parents = vector<int>(graph.GetLength(), -1);
     capacities[s] = 0;
+    parents[s] = 0;
 
-    for (int i = 0; i < capacities.size(); i++)
+    prior.emplace(make_pair(capacities[s], s));
+
+    while (!prior.empty())
     {
-        q.emplace(i, capacities[i]);
-    }
-
-    while (!q.empty())
-    {
-        pair<int, const int &> u = q.top();
-        q.pop();
-
-        for (pair<int, int> e : graph.GetAdjList(u.first))
+        int distance = prior.top().first;
+        int node = prior.top().second;
+        prior.pop();
+        for (auto it : graph.GetAdjList(node))
         {
-            if (capacities[e.first] < e.second)
+            int next_node = it.first;
+            int next_weight = it.second;
+            if (capacities[next_node] < next_weight && 0 < next_weight && parents[next_node] < 0)
             {
-                parents[e.first] = u.first;
-                capacities[e.first] = e.second;
+                capacities[next_node] = next_weight;
+                parents[next_node] = node;
+                prior.emplace(make_pair(capacities[next_node], next_node));
             }
         }
-        // TODO: Reprioritize Queue
-        // ReprioritizeQueue(q);
-        q.swap(q);
     }
-
-    return capacities[t] != -1;
+    return capacities[t] > 0;
 }
 
 int FordFulkerson(Graph &newGraph, int s, int t, bool (*FlowFindingFunction)(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &parents))
@@ -159,7 +156,7 @@ int FordFulkerson(Graph &newGraph, int s, int t, bool (*FlowFindingFunction)(Gra
 
     while (FlowFindingFunction(newGraph, s, t, capacities, parents))
     {
-        for (v = t; v != s; v = parents[v])
+        for (v = t; v != s && v >= 0 && parents[v] >= 0; v = parents[v])
         {
             path_flow = min(path_flow, capacities[v]);
         }
