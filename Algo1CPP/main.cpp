@@ -3,16 +3,16 @@
 int main(int argc, char const *argv[])
 {
     int s, t, errCode;
-    Graph myGraph = Graph(), extraGraph = Graph();
-    errCode = getParamsFromUser(myGraph, s, t);
+    Graph mainGraph, extraGraph;
+    errCode = getParamsFromUser(mainGraph, s, t);
     if (!errCode)
     {
-        extraGraph = myGraph;
+        extraGraph = mainGraph;
         printf("BFS Method:\nMax flow: %d\n", FordFulkerson(extraGraph, s, t, &BFS));
         PrintMinCut(extraGraph, s, t);
 
-        extraGraph = myGraph;
-        printf("\nGreedy Method:\nMax flow: %d\n", FordFulkerson(extraGraph, s, t, &Dijkstra));
+        extraGraph = mainGraph;
+        printf("\nGreedy Method:\nMax flow: %d\n", FordFulkerson(extraGraph, s, t, &GreedyMethod));
         PrintMinCut(extraGraph, s, t);
 
         return 0;
@@ -21,7 +21,7 @@ int main(int argc, char const *argv[])
     return errCode;
 }
 
-int getParamsFromUser(Graph &g, int &s, int &t)
+int getParamsFromUser(Graph &graph, int &s, int &t)
 {
     int size = -1, edges = -1, edgeSide1, edgeSide2, capacity;
     scanf("%d", &size);
@@ -32,7 +32,7 @@ int getParamsFromUser(Graph &g, int &s, int &t)
         return 1;
     }
 
-    g = Graph(size);
+    graph = Graph(size);
 
     scanf("%d", &edges);
 
@@ -44,14 +44,14 @@ int getParamsFromUser(Graph &g, int &s, int &t)
 
     scanf("%d", &s);
 
-    if (!g.checkBounds(--s))
+    if (!graph.checkBounds(--s))
     {
         printf("invalid input");
         return 3;
     }
     scanf("%d", &t);
 
-    if (!g.checkBounds(--t))
+    if (!graph.checkBounds(--t))
     {
         printf("invalid input");
         return 3;
@@ -61,7 +61,7 @@ int getParamsFromUser(Graph &g, int &s, int &t)
     {
         scanf("%d %d %d", &edgeSide1, &edgeSide2, &capacity);
 
-        if (!g.checkBounds(--edgeSide1) || !g.checkBounds(--edgeSide2))
+        if (!graph.checkBounds(--edgeSide1) || !graph.checkBounds(--edgeSide2))
         {
             printf("invalid input");
             return 3;
@@ -73,33 +73,34 @@ int getParamsFromUser(Graph &g, int &s, int &t)
             return 2;
         }
 
-        g.AddEdge(edgeSide1, edgeSide2, capacity);
+        graph.AddEdge(edgeSide1, edgeSide2, capacity);
     }
 
     return 0;
 }
 
+
 bool BFS(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &parents)
 {
-    queue<int> q;
-    int u;
+    queue<int> nodeQueue;
+    int currentNode;
     capacities = vector<int>(graph.GetLength(), -1);
     parents = vector<int>(graph.GetLength(), -1);
-
-    q.push(s);
     capacities[s] = 0;
 
-    while (!q.empty())
+    nodeQueue.emplace(s);
+
+    while (!nodeQueue.empty())
     {
-        u = q.front();
-        q.pop();
-        for (pair<int, int> e : graph.GetAdjList(u))
+        currentNode = nodeQueue.front();
+        nodeQueue.pop();
+        for (pair<int, int> edge : graph.GetAdjList(currentNode))
         {
-            if (parents[e.first] == -1 && e.second > 0)
+            if (parents[edge.first] == -1 && edge.second > 0)
             {
-                q.push(e.first);
-                parents[e.first] = u;
-                capacities[e.first] = e.second;
+                parents[edge.first] = currentNode;
+                capacities[edge.first] = edge.second;
+                nodeQueue.emplace(edge.first);
             }
         }
     }
@@ -107,55 +108,49 @@ bool BFS(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &paren
     return capacities[t] > 0;
 }
 
-bool Dijkstra(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &parents)
+bool GreedyMethod(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &parents)
 {
-    priority_queue<pair<int, int>> prior;
+    priority_queue<pair<int, int>> nodePriorityQueue;
+    int currentNode;
     capacities = vector<int>(graph.GetLength(), -1);
     parents = vector<int>(graph.GetLength(), -1);
     capacities[s] = 0;
-    parents[s] = 0;
 
-    prior.emplace(make_pair(capacities[s], s));
+    nodePriorityQueue.emplace(make_pair(capacities[s], s));
 
-    while (!prior.empty())
+    while (!nodePriorityQueue.empty())
     {
-        int distance = prior.top().first;
-        int node = prior.top().second;
-        prior.pop();
-        for (auto it : graph.GetAdjList(node))
+        currentNode = nodePriorityQueue.top().second;
+        nodePriorityQueue.pop();
+        for (pair<int, int> edge : graph.GetAdjList(currentNode))
         {
-            int next_node = it.first;
-            int next_weight = it.second;
-            if (capacities[next_node] < next_weight && 0 < next_weight && parents[next_node] < 0)
+            if (capacities[edge.first] < edge.second && 0 < edge.second && parents[edge.first] < 0)
             {
-                capacities[next_node] = next_weight;
-                parents[next_node] = node;
-                prior.emplace(make_pair(capacities[next_node], next_node));
+                capacities[edge.first] = edge.second;
+                parents[edge.first] = currentNode;
+                nodePriorityQueue.emplace(make_pair(capacities[edge.first], edge.first));
             }
         }
     }
+
     return capacities[t] > 0;
 }
 
 int FordFulkerson(Graph &newGraph, int s, int t, bool (*FlowFindingFunction)(Graph &graph, int s, int t, vector<int> &capacities, vector<int> &parents))
 {
-    int u, v;
-    vector<int> capacities;
-    vector<int> parents;
-    int max_flow = 0;
-    int path_flow = INT8_MAX;
+    vector<int> capacities, parents;
+    int currentNode, max_flow = 0, path_flow = INT8_MAX;
 
     while (FlowFindingFunction(newGraph, s, t, capacities, parents))
     {
-        for (v = t; v != s && v >= 0 && parents[v] >= 0; v = parents[v])
+        for (currentNode = t; currentNode != s && currentNode >= 0 && parents[currentNode] >= 0; currentNode = parents[currentNode])
         {
-            path_flow = min(path_flow, capacities[v]);
+            path_flow = min(path_flow, capacities[currentNode]);
         }
 
-        for (v = t; v != s; v = parents[v])
+        for (currentNode = t; currentNode != s; currentNode = parents[currentNode])
         {
-            u = parents[v];
-            newGraph.AddToEdgeCapacity(u, v, (-path_flow));
+            newGraph.AddToEdgeCapacity(parents[currentNode], currentNode, (-path_flow));
         }
 
         max_flow += path_flow;
@@ -167,16 +162,16 @@ int FordFulkerson(Graph &newGraph, int s, int t, bool (*FlowFindingFunction)(Gra
 
 void PrintMinCut(Graph &newGraph, int s, int t)
 {
-    vector<int> capacities, parents1, parents2;
+    vector<int> capacities, parents;
     vector<bool> visited(newGraph.GetLength(), false);
-    Graph tGraph;
-    BFS(newGraph, s, s, capacities, parents1);
+
+    BFS(newGraph, s, s, capacities, parents);
 
     printf("Min cut: S =");
 
-    for (int i = 0; i < parents1.size(); i++)
+    for (int i = 0; i < parents.size(); i++)
     {
-        if (i == s || (parents1[i] != -1 && i != t))
+        if (i == s || (parents[i] != -1 && i != t))
         {
             printf(" %d", i + 1);
         }
@@ -184,9 +179,9 @@ void PrintMinCut(Graph &newGraph, int s, int t)
 
     printf(". T =");
 
-    for (int i = 0; i < parents1.size(); i++)
+    for (int i = 0; i < parents.size(); i++)
     {
-        if (i != s && (parents1[i] == -1 || i == t))
+        if (i != s && (parents[i] == -1 || i == t))
         {
             printf(" %d", i + 1);
         }
